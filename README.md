@@ -11,7 +11,6 @@
 - **参数配置**：艺术风格、拓扑结构、多边形数量、PBR 材质、重新拓扑
 - **实时进度**：优先 SSE 长连接接收进度推送，自动降级为轮询（4s 间隔）
 - **3D 预览**：Three.js r168 加载 GLB，支持鼠标旋转 / 滚轮缩放 / 平移
-- **线框模式**：一键切换实体 / 线框显示
 - **URL 展示**：生成完成后直接在页面展示所有格式的原始 URL，一键复制
 - **调试预览**：可直接粘贴已有模型 URL 预览，无需重新生成
 - **本地日志**：所有关键日志自动写入 `app.log`，方便事后查阅模型 URL 等信息
@@ -43,14 +42,9 @@ meshy-image-to-3d/
 
 ### 2. 配置 API Key
 
-打开 `app.js`，将顶部 `CONFIG` 中的 Key 替换：
+启动服务后，在页面右侧"生成配置"区域顶部的 API Key 输入框中填入你的 Key，填写后会自动保存到浏览器 `localStorage`，下次打开无需重填。
 
-```js
-const CONFIG = {
-  API_KEY: 'msy_xxxxxxxxxxxxxxxxxxxxxxxx',  // ← 替换这里
-  ...
-};
-```
+> 也可以直接修改 `app.js` 顶部 `CONFIG.API_KEY` 字段作为默认值。
 
 ### 3. 启动本地服务器
 
@@ -235,6 +229,63 @@ app.js log()
 1. 页面底部增加调试输入框，可直接粘贴 URL 预览。  
 2. `app.log` 自动记录每次生成的 `model_urls`，历史 URL 随时可查。  
 3. 生成完成后页面直接展示所有格式原始 URL，一键复制。
+
+---
+
+## 模型数据存储机制
+
+### 模型存放在哪里？
+
+网页上展示的模型来源有两种情况：
+
+#### 情况一：通过 API 生成的模型（远程 URL）
+
+模型文件存放在 **Meshy 的云端服务器**（`assets.meshy.ai`）。加载流程如下：
+
+```
+Meshy API 返回 model_urls
+  └─ glbUrl = model_urls.glb（例如 https://assets.meshy.ai/xxx.glb）
+       └─ loadModelInViewer(glbUrl)
+            └─ 经过本地代理 /proxy?url=... 转发
+                 └─ GLTFLoader 加载渲染
+```
+
+#### 情况二：本地文件加载
+
+模型文件存放在**本地磁盘**，通过拖拽或点击选择进入。加载流程如下：
+
+```
+用户选择本地文件（.glb / .gltf / .obj / .fbx）
+  └─ URL.createObjectURL(file) 生成临时内存 URL
+       └─ GLTFLoader / OBJLoader / FBXLoader 加载渲染
+            └─ 加载完毕后 URL.revokeObjectURL() 释放内存
+```
+
+### 模型是实时从云端拉取还是下载到本地？
+
+通过 API 生成的模型展示时，**不会将文件写入本地磁盘**。浏览器通过代理把远程 GLB 文件流式读取到内存，交给 Three.js 解析渲染，全程数据只存在于浏览器内存和 GPU 显存中：
+
+```
+Meshy 云端 .glb 文件
+      ↓  HTTP 请求（经过 /proxy 转发）
+  浏览器内存（ArrayBuffer）
+      ↓  GLTFLoader 解析
+  Three.js 场景（GPU 显存）
+      ↓  WebGL 渲染
+  屏幕上的画面
+```
+
+关闭页面或刷新后，模型数据即消失。
+
+### 三种存储方式对比
+
+| 存储方式 | 关闭页面后 | 用途 |
+|----------|-----------|------|
+| 浏览器内存（渲染模型） | 消失 | Three.js 实时渲染 |
+| `localStorage` | **保留** | API Key 持久化存储 |
+| 本地磁盘文件 | **保留** | 需主动点击下载才会保存 |
+
+> 如需永久保存模型，请点击页面上的**下载按钮**，将 `.glb` 等格式文件保存到本地磁盘。
 
 ---
 
