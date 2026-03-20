@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图片转3D生成器 · Meshy AI</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js ES Module via importmap -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- 背景装饰 -->
+  <div class="bg-gradient"></div>
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>图片转 3D 生成器</h1>
+        <p>由 Meshy AI 驱动 · 上传图片，一键生成3D模型</p>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-grid">
+
+      <!-- Left Panel: Upload + Config -->
+      <section class="panel panel-left">
+
+        <!-- API Key -->
+        <div class="card apikey-card" id="apikeyCard">
+          <h2 class="card-title">
+            <span class="icon">🔑</span> Meshy API Key
+            <span class="apikey-status" id="apikeyStatus"></span>
+          </h2>
+          <div class="apikey-row">
+            <input type="password" id="apikeyInput" placeholder="msy_xxxxxxxxxxxxxxxx" autocomplete="off" />
+            <button class="btn-apikey-toggle" id="btnApikeyToggle" title="显示/隐藏">
+              <svg id="eyeIcon" viewBox="0 0 20 20" fill="none" width="16" height="16">
+                <path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+            <button class="btn-apikey-save" id="btnApikeySave">保存</button>
+          </div>
+          <p class="apikey-hint">
+            Key 仅保存在本地浏览器，不会上传。
+            <a href="https://app.meshy.ai/account/api-keys" target="_blank">获取 API Key →</a>
+          </p>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="card upload-card">
+          <h2 class="card-title">
+            <span class="icon">📁</span> 上传图片
+          </h2>
+          <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">
+              <svg viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
+                <path d="M24 32V18M17 25l7-7 7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="upload-text">拖拽图片到此处</p>
+            <p class="upload-hint">或点击选择文件 · 支持 JPG、PNG、WEBP</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" hidden />
+          </div>
+          <div class="preview-area" id="previewArea" style="display:none;">
+            <img id="previewImg" src="" alt="预览" />
+            <button class="btn-remove" id="btnRemove" title="移除图片">✕</button>
+          </div>
+        </div>
+
+        <!-- Config -->
+        <div class="card config-card">
+          <h2 class="card-title">
+            <span class="icon">⚙️</span> 生成配置
+          </h2>
+          <div class="config-grid">
+            <div class="config-item">
+              <label for="artStyle">艺术风格</label>
+              <select id="artStyle">
+                <option value="realistic">写实 (Realistic)</option>
+                <option value="cartoon">卡通 (Cartoon)</option>
+              </select>
+            </div>
+            <div class="config-item">
+              <label for="topology">拓扑结构</label>
+              <select id="topology">
+                <option value="triangle">三角面</option>
+                <option value="quad">四边面</option>
+              </select>
+            </div>
+            <div class="config-item">
+              <label for="targetPolycount">多边形数量</label>
+              <select id="targetPolycount">
+                <option value="">自动</option>
+                <option value="10000">低 (10K)</option>
+                <option value="30000" selected>中 (30K)</option>
+                <option value="100000">高 (100K)</option>
+              </select>
+            </div>
+            <div class="config-item">
+              <label>选项</label>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="enablePBR" checked />
+                  <span class="checkmark"></span>
+                  启用 PBR 材质
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="enableRemeshing" />
+                  <span class="checkmark"></span>
+                  启用重新拓扑
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button class="btn-generate" id="btnGenerate" disabled>
+          <span class="btn-icon">✨</span>
+          <span class="btn-text">开始生成 3D 模型</span>
+        </button>
+
+      </section>
+
+      <!-- Right Panel: Progress + Preview -->
+      <section class="panel panel-right">
+
+        <!-- Progress -->
+        <div class="card progress-card" id="progressCard" style="display:none;">
+          <h2 class="card-title">
+            <span class="icon">⏳</span> 生成进度
+          </h2>
+          <div class="progress-status">
+            <div class="status-badge" id="statusBadge">等待中</div>
+            <span class="task-id" id="taskIdLabel"></span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progressBar" style="width:0%"></div>
+          </div>
+          <p class="progress-text" id="progressText">正在初始化任务...</p>
+          <div class="progress-log" id="progressLog"></div>
+        </div>
+
+        <!-- 3D Viewer -->
+        <div class="card viewer-card" id="viewerCard" style="display:none;">
+          <h2 class="card-title">
+            <span class="icon">🧊</span> 3D 模型预览
+            <span class="viewer-hint">拖拽旋转 · 滚轮缩放</span>
+          </h2>
+          <div class="viewer-wrap" id="viewerWrap">
+            <canvas id="threeCanvas"></canvas>
+            <div class="viewer-loading" id="viewerLoading">
+              <div class="spinner"></div>
+              <span>加载模型中...</span>
+            </div>
+          </div>
+          <div class="viewer-controls">
+            <button class="btn-control" id="btnResetView" title="重置视角">
+              <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              重置视角
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Download -->
+        <div class="card download-card" id="downloadCard" style="display:none;">
+          <h2 class="card-title">
+            <span class="icon">📥</span> 下载模型
+          </h2>
+          <div class="download-grid" id="downloadGrid">
+            <!-- 动态生成 -->
+          </div>
+        </div>
+
+        <!-- Placeholder -->
+        <div class="card placeholder-card" id="placeholderCard">
+          <div class="placeholder-content">
+            <div class="placeholder-icon">
+              <svg viewBox="0 0 80 80" fill="none">
+                <rect x="10" y="10" width="60" height="60" rx="12" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4" opacity="0.4"/>
+                <path d="M40 28v24M28 40h24" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+              </svg>
+            </div>
+            <p>上传图片后开始生成</p>
+            <p class="placeholder-sub">生成完成后，3D模型将在此处预览</p>
+          </div>
+          <!-- 加载本地 3D 文件 -->
+          <div class="local-load">
+            <p class="local-load-title">
+              <svg viewBox="0 0 20 20" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:5px">
+                <path d="M10 2v10m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 14v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              加载本地 3D 文件
+            </p>
+            <div class="local-load-dropzone" id="localDropZone">
+              <div class="local-load-drop-icon">
+                <svg viewBox="0 0 48 48" fill="none" width="36" height="36">
+                  <rect x="6" y="8" width="36" height="32" rx="4" stroke="currentColor" stroke-width="2"/>
+                  <path d="M16 24h16M24 16v16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <p class="local-load-hint">拖放文件到此处，或点击选择</p>
+              <p class="local-load-formats">支持 <strong>GLB</strong> · <strong>GLTF</strong> · <strong>OBJ</strong> · <strong>FBX</strong></p>
+              <input type="file" id="localFileInput" accept=".glb,.gltf,.obj,.fbx" hidden />
+            </div>
+          </div>
+
+          <!-- 调试：直接输入 URL 预览 -->
+          <div class="debug-preview">
+            <p class="debug-label">🔧 调试：粘贴 GLB URL 直接预览</p>
+            <div class="debug-row">
+              <input type="text" id="debugUrlInput" placeholder="https://assets.meshy.ai/.../model.glb?..." />
+              <button id="btnDebugPreview">预览</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
