@@ -14,28 +14,21 @@ NODE_PORT=8765
 NGINX_CONF="/etc/nginx/sites-available/meshy-app"
 
 echo "========================================"
-echo "  🚀 开始部署 meshy-image-to-3d"
+echo "  开始部署 meshy-image-to-3d"
 echo "========================================"
 
-# ── 1. 更新系统并安装依赖 ─────────────────────────────────
-echo "[1/6] 安装系统依赖..."
+# ── 1. 安装系统依赖 ───────────────────────────────────────
+echo "[1/5] 安装系统依赖..."
 apt-get update -y -q
 apt-get install -y -q git nginx curl
-
-# ── 2. 安装 Node.js 18 (via NodeSource) ──────────────────
-echo "[2/6] 安装 Node.js 18..."
-if ! command -v node &> /dev/null || [[ "$(node -e 'process.exit(parseInt(process.version.slice(1)) < 18 ? 1 : 0)' ; echo $?)" == "1" ]]; then
-  curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-  apt-get install -y -q nodejs
-fi
 echo "  Node: $(node -v)   npm: $(npm -v)"
 
-# ── 3. 安装 PM2 ───────────────────────────────────────────
-echo "[3/6] 安装 PM2..."
+# ── 2. 安装 PM2 ───────────────────────────────────────────
+echo "[2/5] 安装 PM2..."
 npm install -g pm2 --quiet
 
-# ── 4. 拉取 / 更新代码 ────────────────────────────────────
-echo "[4/6] 拉取代码..."
+# ── 3. 拉取 / 更新代码 ────────────────────────────────────
+echo "[3/5] 拉取代码..."
 if [ -d "$APP_DIR/.git" ]; then
   echo "  检测到已有仓库，执行 git pull..."
   cd "$APP_DIR"
@@ -46,8 +39,8 @@ else
   cd "$APP_DIR"
 fi
 
-# ── 5. PM2 启动/重启 Node 服务 ────────────────────────────
-echo "[5/6] 启动 Node 服务 (PM2)..."
+# ── 4. PM2 启动/重启 Node 服务 ────────────────────────────
+echo "[4/5] 启动 Node 服务 (PM2)..."
 if pm2 describe "$APP_NAME" &> /dev/null; then
   pm2 reload "$APP_NAME"
   echo "  已重载 $APP_NAME"
@@ -58,8 +51,8 @@ fi
 pm2 startup systemd -u root --hp /root | tail -n1 | bash || true
 pm2 save
 
-# ── 6. 配置 Nginx 反向代理 ────────────────────────────────
-echo "[6/6] 配置 Nginx..."
+# ── 5. 配置 Nginx 反向代理 ────────────────────────────────
+echo "[5/5] 配置 Nginx..."
 cat > "$NGINX_CONF" << 'EOF'
 server {
     listen 80;
