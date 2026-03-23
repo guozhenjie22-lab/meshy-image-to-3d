@@ -11,7 +11,7 @@ APP_NAME="meshy-app"
 APP_DIR="/home/meshy-app"
 REPO="https://github.com/guozhenjie22-lab/meshy-image-to-3d"
 NODE_PORT=8765
-NGINX_CONF="/etc/nginx/sites-available/meshy-app"
+NGINX_CONF="/etc/nginx/conf.d/meshy-app.conf"
 
 echo "========================================"
 echo "  开始部署 meshy-image-to-3d"
@@ -53,46 +53,36 @@ pm2 save
 
 # ── 5. 配置 Nginx 反向代理 ────────────────────────────────
 echo "[5/5] 配置 Nginx..."
-cat > "$NGINX_CONF" << 'EOF'
+# 写入 Nginx 配置（conf.d 模式）
+cat > "$NGINX_CONF" << 'NGINXEOF'
 server {
     listen 80;
     server_name _;
 
-    # 上传大文件（图片）限制
     client_max_body_size 20M;
 
-    # 反向代理到 Node.js
     location / {
         proxy_pass         http://127.0.0.1:8765;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   Upgrade           $http_upgrade;
-        proxy_set_header   Connection        "upgrade";
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;
     }
 
-    # 静态文件缓存加速
     location ~* \.(css|js|png|jpg|ico|glb)$ {
         proxy_pass       http://127.0.0.1:8765;
         proxy_set_header Host $host;
         expires          7d;
-        add_header       Cache-Control "public";
+        add_header       Cache-Control public;
     }
 }
-EOF
-
-# 启用站点
-ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/meshy-app
-
-# 移除默认站点（避免端口冲突）
-rm -f /etc/nginx/sites-enabled/default
+NGINXEOF
 
 # 测试并重载 Nginx
 nginx -t
-systemctl restart nginx
+systemctl reload nginx
 systemctl enable nginx
 
 # ── 完成 ─────────────────────────────────────────────────
