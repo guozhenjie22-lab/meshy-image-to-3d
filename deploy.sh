@@ -103,7 +103,16 @@ echo ""
 echo "========================================"
 echo "  ✅ 完成！"
 echo "  访问地址：https://founderbook.com.cn"
-echo "  PM2 状态：pm2 list"
-echo "  查看日志：pm2 logs $APP_NAME"
-echo "  Nginx 状态：systemctl status nginx"
 echo "========================================"
+
+echo ""
+echo "── PM2 进程状态 ──────────────────────────"
+pm2 list
+
+echo ""
+echo "── 应用最新日志（最近 20 行）─────────────"
+pm2 logs "$APP_NAME" --lines 20 --nostream
+
+echo ""
+echo "── Nginx 运行状态 ────────────────────────"
+systemctl is-active nginx && echo "  Nginx: 运行中 ✓" || echo "  Nginx: 未运行 ✗"
