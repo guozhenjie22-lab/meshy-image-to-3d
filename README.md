@@ -1,6 +1,8 @@
 # 图片转 3D 生成器 · Meshy AI
 
-基于 [Meshy Image-to-3D API](https://docs.meshy.ai/zh/api/image-to-3d) 的本地图片转 3D 网页工具。上传一张图片，AI 自动生成 3D 模型，支持在线预览与多格式下载。
+基于 [Meshy Image-to-3D API](https://docs.meshy.ai/zh/api/image-to-3d) 的图片转 3D 网页工具。上传一张图片，AI 自动生成 3D 模型，支持在线预览与多格式下载。
+
+**线上地址**：https://founderbook.com.cn
 
 ---
 
@@ -8,10 +10,11 @@
 
 - [功能特性](#功能特性)
 - [目录结构](#目录结构)
-- [快速开始](#快速开始)
+- [本地开发](#本地开发)
   - [1. 获取 API Key](#1-获取-api-key)
   - [2. 配置 API Key](#2-配置-api-key)
   - [3. 启动本地服务器](#3-启动本地服务器)
+- [线上部署](#线上部署)
 - [使用说明](#使用说明)
   - [参数说明](#参数说明)
   - [调试预览](#调试预览)
@@ -21,13 +24,7 @@
 - [技术栈](#技术栈)
 - [API 接口](#api-接口)
 - [调试经验](#调试经验)
-  - [问题 1：`Cannot access 'x' before initialization`](#问题-1cannot-access-x-before-initialization)
-  - [问题 2：CORS 拦截 CDN 模型文件](#问题-2cors-拦截-cdn-模型文件)
-  - [问题 3：无法复用已生成的模型 URL](#问题-3无法复用已生成的模型-url)
 - [模型数据存储机制](#模型数据存储机制)
-  - [模型存放在哪里？](#模型存放在哪里)
-  - [模型是实时从云端拉取还是下载到本地？](#模型是实时从云端拉取还是下载到本地)
-  - [三种存储方式对比](#三种存储方式对比)
 - [注意事项](#注意事项)
 - [相关链接](#相关链接)
 
@@ -54,7 +51,8 @@ meshy-image-to-3d/
 ├── index.html    # 主页面，完整 UI 结构
 ├── style.css     # 样式，玻璃拟态设计风格
 ├── app.js        # 核心逻辑（API / Three.js / 事件处理）
-├── server.js     # 本地开发服务器（静态文件 + CORS 代理 + 日志落盘）
+├── server.js     # 服务器（静态文件 + CORS 代理 + 日志落盘）
+├── deploy.sh     # 部署/更新脚本（首次部署 & 后续更新通用）
 ├── app.log       # 运行时日志（自动生成，.gitignore 排除）
 └── README.md
 ```
@@ -63,7 +61,7 @@ meshy-image-to-3d/
 
 ---
 
-## 快速开始
+## 本地开发
 
 ### 1. 获取 API Key
 
@@ -86,6 +84,27 @@ node server.js
 访问 `http://localhost:8765`。
 
 > ⚠️ 不可用 `python -m http.server` 或直接双击打开，CDN 模型文件会被浏览器 CORS 策略拦截。
+
+---
+
+## 线上部署
+
+服务器环境：Ubuntu 22.04 + Nginx + PM2 + HTTPS（Let's Encrypt）
+
+**首次部署**（服务器上没有仓库时）：
+
+```bash
+scp deploy.sh root@8.145.34.254:/root/deploy.sh
+ssh root@8.145.34.254 "bash /root/deploy.sh"
+```
+
+**后续更新**（推送代码后）：
+
+```bash
+ssh root@8.145.34.254 "cd /home/meshy-app && git pull origin master && bash deploy.sh"
+```
+
+`deploy.sh` 智能检测环境，已安装的依赖自动跳过，已有 Nginx 配置不会覆盖。详细部署文档见 [DEPLOY_NOTES.md](./DEPLOY_NOTES.md)。
 
 ---
 
@@ -214,7 +233,7 @@ app.js log()
 | OrbitControls | r168 | 鼠标交互控制 |
 | Fetch API + ReadableStream | — | SSE 进度推送（手动读流） |
 | FileReader + Canvas API | — | 图片读取与压缩 |
-| Node.js `http` / `https` / `fs` | ≥16 | 本地服务器 + CORS 代理 + 日志落盘 |
+| Node.js `http` / `https` / `fs` | ≥16 | 服务器 + CORS 代理 + 日志落盘 |
 
 ---
 
@@ -264,8 +283,6 @@ app.js log()
 ## 模型数据存储机制
 
 ### 模型存放在哪里？
-
-网页上展示的模型来源有两种情况：
 
 #### 情况一：通过 API 生成的模型（远程 URL）
 
@@ -321,11 +338,11 @@ Meshy 云端 .glb 文件
 ## 注意事项
 
 - ⚠️ API Key 存储在本地文件中，**请勿将包含 Key 的代码提交到公共仓库**
-- `app.log` 中含有模型 URL（带签名 token），同样不建议提交，建议加入 `.gitignore`
+- `app.log` 中含有模型 URL（带签名 token），同样不建议提交，已加入 `.gitignore`
 - 图片建议主体清晰、背景简单，生成效果更佳
 - 免费账户有 API 调用次数限制，参考 [Meshy 定价](https://www.meshy.ai/pricing)
 - 生成时间受模型复杂度和服务器负载影响，一般为 1~5 分钟
-- 必须通过 `node server.js` 启动服务，不支持直接双击 `index.html`
+- 本地开发必须通过 `node server.js` 启动，不支持直接双击 `index.html`
 
 ---
 
