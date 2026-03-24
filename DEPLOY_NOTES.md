@@ -19,11 +19,13 @@
 
 ### 首次部署
 
-服务器上还没有仓库，需要先上传 `deploy.sh` 再执行：
+SSH 登录服务器，克隆仓库后直接执行脚本：
 
 ```bash
-scp deploy.sh root@8.145.34.254:/root/deploy.sh
-ssh root@8.145.34.254 "bash /root/deploy.sh"
+ssh root@8.145.34.254
+git clone https://github.com/guozhenjie22-lab/meshy-image-to-3d /home/meshy-app
+cd /home/meshy-app
+bash deploy.sh
 ```
 
 ### 后续更新

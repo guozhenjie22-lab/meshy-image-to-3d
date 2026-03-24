@@ -91,11 +91,12 @@ node server.js
 
 服务器环境：Ubuntu 22.04 + Nginx + PM2 + HTTPS（Let's Encrypt）
 
-**首次部署**（服务器上没有仓库时）：
+**首次部署**（SSH 登录服务器后执行）：
 
 ```bash
-scp deploy.sh root@8.145.34.254:/root/deploy.sh
-ssh root@8.145.34.254 "bash /root/deploy.sh"
+git clone https://github.com/guozhenjie22-lab/meshy-image-to-3d /home/meshy-app
+cd /home/meshy-app
+bash deploy.sh
 ```
 
 **后续更新**（推送代码后）：
