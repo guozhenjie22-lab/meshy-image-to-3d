@@ -1,8 +1,10 @@
 #!/bin/bash
 # ============================================================
-# 一键部署脚本 - meshy-image-to-3d
+# 部署/更新脚本 - meshy-image-to-3d
 # 适用：Ubuntu 22.04，Nginx 反代 Node.js (端口 8765)
 # 用法：bash deploy.sh
+#   首次运行：自动安装依赖、克隆代码、配置 Nginx
+#   再次运行：拉取最新代码、重启服务（跳过已完成的步骤）
 # ============================================================
 
 set -e
@@ -14,25 +16,35 @@ NODE_PORT=8765
 NGINX_CONF="/etc/nginx/conf.d/meshy-app.conf"
 
 echo "========================================"
-echo "  开始部署 meshy-image-to-3d"
+echo "  部署/更新 meshy-image-to-3d"
 echo "========================================"
 
-# ── 1. 安装系统依赖 ───────────────────────────────────────
-echo "[1/5] 安装系统依赖..."
-apt-get update -y -q
-apt-get install -y -q git nginx curl
+# ── 1. 安装系统依赖（已安装则跳过）─────────────────────────
+if ! command -v nginx &> /dev/null; then
+  echo "[1/4] 安装系统依赖..."
+  apt-get update -y -q
+  apt-get install -y -q git nginx curl
+else
+  echo "[1/4] 系统依赖已就绪，跳过"
+fi
 echo "  Node: $(node -v)   npm: $(npm -v)"
 
-# ── 2. 安装 PM2 ───────────────────────────────────────────
-echo "[2/5] 安装 PM2..."
-npm install -g pm2 --quiet
+# ── 2. 安装 PM2（已安装则跳过）──────────────────────────────
+if ! command -v pm2 &> /dev/null; then
+  echo "[2/4] 安装 PM2..."
+  npm install -g pm2 --quiet
+else
+  echo "[2/4] PM2 已就绪，跳过"
+fi
 
 # ── 3. 拉取 / 更新代码 ────────────────────────────────────
-echo "[3/5] 拉取代码..."
+echo "[3/4] 同步代码..."
 if [ -d "$APP_DIR/.git" ]; then
-  echo "  检测到已有仓库，执行 git pull..."
+  echo "  检测到已有仓库，拉取最新代码..."
   cd "$APP_DIR"
-  git pull origin master
+  git fetch --all
+  git reset --hard origin/master
+  echo "  当前版本: $(git log -1 --format='%h %s')"
 else
   echo "  首次克隆仓库..."
   git clone "$REPO" "$APP_DIR"
@@ -40,24 +52,24 @@ else
 fi
 
 # ── 4. PM2 启动/重启 Node 服务 ────────────────────────────
-echo "[4/5] 启动 Node 服务 (PM2)..."
+echo "[4/4] 启动/重载服务..."
 if pm2 describe "$APP_NAME" &> /dev/null; then
   pm2 reload "$APP_NAME"
   echo "  已重载 $APP_NAME"
 else
   pm2 start server.js --name "$APP_NAME"
+  pm2 startup systemd -u root --hp /root | tail -n1 | bash || true
   echo "  已启动 $APP_NAME"
 fi
-pm2 startup systemd -u root --hp /root | tail -n1 | bash || true
 pm2 save
 
-# ── 5. 配置 Nginx 反向代理 ────────────────────────────────
-echo "[5/5] 配置 Nginx..."
-# 写入 Nginx 配置（conf.d 模式）
-cat > "$NGINX_CONF" << 'NGINXEOF'
+# ── 5. 配置 Nginx（已有配置则跳过）──────────────────────────
+if [ ! -f "$NGINX_CONF" ]; then
+  echo "[+] 写入 Nginx 配置..."
+  cat > "$NGINX_CONF" << 'NGINXEOF'
 server {
     listen 80;
-    server_name _;
+    server_name founderbook.com.cn www.founderbook.com.cn;
 
     client_max_body_size 20M;
 
@@ -79,17 +91,19 @@ server {
     }
 }
 NGINXEOF
-
-# 测试并重载 Nginx
-nginx -t
-systemctl reload nginx
-systemctl enable nginx
+  nginx -t
+  systemctl reload nginx
+  systemctl enable nginx
+else
+  echo "[+] Nginx 配置已存在，跳过（如需重置请手动删除 $NGINX_CONF）"
+fi
 
 # ── 完成 ─────────────────────────────────────────────────
 echo ""
 echo "========================================"
-echo "  ✅ 部署完成！"
-echo "  访问地址：http://$(curl -s ifconfig.me 2>/dev/null || echo '你的服务器IP')"
+echo "  ✅ 完成！"
+echo "  访问地址：https://founderbook.com.cn"
 echo "  PM2 状态：pm2 list"
+echo "  查看日志：pm2 logs $APP_NAME"
 echo "  Nginx 状态：systemctl status nginx"
 echo "========================================"
