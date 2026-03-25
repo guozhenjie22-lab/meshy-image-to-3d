@@ -91,7 +91,7 @@ html, body {
 /* ===== Main Grid ===== */
 .main-grid {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -347,7 +347,8 @@ html, body {
 .viewer-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 0.75;
+  aspect-ratio: 1 / 0.82;
+  min-height: 560px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: linear-gradient(135deg, #0d0e1a, #151728);
@@ -724,3 +725,5 @@ html, body {
 }
 .debug-row button:hover { opacity: 0.85; }
 }
+
+
