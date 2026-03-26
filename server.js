@@ -13,6 +13,10 @@ const fs    = require('fs');
 const path  = require('path');
 const url   = require('url');
 
+// 读取本地私有配置（Key 不入 Git）
+let localConfig = {};
+try { localConfig = require('./config.local.js'); } catch (_) {}
+
 const PORT    = 8765;
 const ROOT    = __dirname;
 const LOG_FILE = path.join(__dirname, 'app.log');
@@ -31,6 +35,17 @@ const MIME = {
 const server = http.createServer((req, res) => {
   const parsed  = url.parse(req.url, true);
   const pathname = parsed.pathname;
+
+  // ── /api/config：向前端下发服务端配置（仅 Key，不暴露其他内容）──
+  if (pathname === '/api/config' && req.method === 'GET') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      apiKey: localConfig.MESHY_API_KEY || '',
+    }));
+    return;
+  }
 
   // ── 日志写入 ──────────────────────────────────────────────────
   if (pathname === '/log' && req.method === 'POST') {

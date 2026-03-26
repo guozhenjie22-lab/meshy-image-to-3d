@@ -145,8 +145,25 @@ function initGenerateButton() {
 /* ================================================================
    DOMContentLoaded  —  入口
    ================================================================ */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   log('info', '[App]', '页面初始化完成，Three.js r' + THREE.REVISION);
+
+  // ── 从服务端自动获取 API Key ──────────────────────────────────
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.apiKey) {
+        localStorage.setItem('meshy_api_key', cfg.apiKey);
+        log('info', '[App]', '已从服务端自动加载 API Key');
+        // 隐藏 API Key 输入卡片（服务端已托管，无需用户手动填写）
+        const apikeyCard = $('apikeyCard');
+        if (apikeyCard) apikeyCard.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    log('warn', '[App]', '未能从服务端获取 API Key，需手动输入:', e.message);
+  }
 
   // 注入 API 回调（避免循环引用）
   registerTaskCallbacks({ onSucceeded: onTaskSucceeded, onFailed: onTaskFailed });
