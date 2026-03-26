@@ -25,7 +25,7 @@ export function registerTaskCallbacks({ onSucceeded, onFailed }) {
    通用 fetch 封装
    ---------------------------------------------------------------- */
 export async function apiFetch(path, options = {}, _silent = false) {
-  if (!CONFIG.API_KEY) throw new Error('请先设置 Meshy API Key');
+  if (!CONFIG.API_KEY) throw new Error('API Key 未加载，请刷新页面重试');
 
   const url    = CONFIG.BASE_URL + path;
   const method = options.method || 'GET';
