@@ -6,6 +6,18 @@
 import { CONFIG, state, log, showToast, $ } from './utils.js';
 
 /* ----------------------------------------------------------------
+   生成下载文件名
+   规则：meshy_YYYYMMDD_HHmmss.格式
+   例：meshy_20260326_153012.glb
+   ---------------------------------------------------------------- */
+function buildDownloadName(fmt) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `meshy_${ts}.${fmt}`;
+}
+
+/* ----------------------------------------------------------------
    图片压缩（FileReader + Canvas）
    ---------------------------------------------------------------- */
 export function compressImage(file) {
@@ -148,7 +160,7 @@ export function renderDownloadButtons(modelUrls) {
     a.href      = url;
     a.target    = '_blank';
     a.rel       = 'noopener';
-    a.download  = `meshy-model.${fmt}`;
+    a.download  = buildDownloadName(fmt);
     a.innerHTML = `
       <span>${info.icon}</span>
       <span>${info.label} 文件</span>
