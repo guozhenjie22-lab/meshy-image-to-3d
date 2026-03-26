@@ -154,19 +154,38 @@ export function renderDownloadButtons(modelUrls) {
 
   Object.entries(modelUrls).forEach(([fmt, url]) => {
     if (!url) return;
-    const info = formatInfo[fmt] || { label: fmt.toUpperCase(), icon: '📄' };
-    const a = document.createElement('a');
-    a.className = 'download-btn';
-    a.href      = url;
-    a.target    = '_blank';
-    a.rel       = 'noopener';
-    a.download  = buildDownloadName(fmt);
-    a.innerHTML = `
+    const info     = formatInfo[fmt] || { label: fmt.toUpperCase(), icon: '📄' };
+    const filename = buildDownloadName(fmt);
+    const btn = document.createElement('button');
+    btn.className = 'download-btn';
+    btn.innerHTML = `
       <span>${info.icon}</span>
       <span>${info.label} 文件</span>
       <span class="format-badge">${info.label}</span>
     `;
-    downloadGrid.appendChild(a);
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = `<span>⏳</span><span>下载中...</span><span class="format-badge">${info.label}</span>`;
+      try {
+        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (err) {
+        log('error', '[Download]', `下载失败 ${fmt}:`, err.message);
+        showToast(`下载失败：${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    });
+    downloadGrid.appendChild(btn);
   });
 
   // 模型原始 URL 展示区
