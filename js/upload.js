@@ -163,27 +163,11 @@ export function renderDownloadButtons(modelUrls) {
       <span>${info.label} 文件</span>
       <span class="format-badge">${info.label}</span>
     `;
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      const origHtml = btn.innerHTML;
-      btn.innerHTML = `<span>⏳</span><span>下载中...</span><span class="format-badge">${info.label}</span>`;
-      try {
-        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
-        const a = document.createElement('a');
-        a.href     = URL.createObjectURL(blob);
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(a.href);
-      } catch (err) {
-        log('error', '[Download]', `下载失败 ${fmt}:`, err.message);
-        showToast(`下载失败：${err.message}`, 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = origHtml;
-      }
+    btn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href     = `/proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      a.download = filename;
+      a.click();
     });
     downloadGrid.appendChild(btn);
   });

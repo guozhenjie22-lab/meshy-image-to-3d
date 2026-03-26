@@ -74,7 +74,8 @@ const server = http.createServer((req, res) => {
 
   // ── CORS 代理 ─────────────────────────────────────────────────
   if (pathname === '/proxy') {
-    const target = parsed.query.url;
+    const target   = parsed.query.url;
+    const filename = parsed.query.filename || '';
     if (!target) {
       res.writeHead(400); res.end('Missing ?url='); return;
     }
@@ -84,12 +85,20 @@ const server = http.createServer((req, res) => {
     const transport    = targetParsed.protocol === 'https:' ? https : http;
 
     const proxyReq = transport.get(target, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (proxyRes) => {
-      res.writeHead(proxyRes.statusCode, {
+      const headers = {
         'Content-Type':                proxyRes.headers['content-type'] || 'application/octet-stream',
-        'Content-Length':              proxyRes.headers['content-length'] || '',
         'Access-Control-Allow-Origin': '*',
         'Cache-Control':               'public, max-age=600',
-      });
+      };
+      if (proxyRes.headers['content-length']) {
+        headers['Content-Length'] = proxyRes.headers['content-length'];
+      }
+      if (filename) {
+        // RFC 5987 编码，支持中文/emoji 文件名
+        const encoded = encodeURIComponent(filename).replace(/'/g, '%27');
+        headers['Content-Disposition'] = `attachment; filename*=UTF-8''${encoded}`;
+      }
+      res.writeHead(proxyRes.statusCode, headers);
       proxyRes.pipe(res);
     });
 
