@@ -50,54 +50,6 @@ function onTaskFailed(status) {
 }
 
 /* ================================================================
-   API Key UI
-   ================================================================ */
-function initApiKeyUI() {
-  const input     = $('apikeyInput');
-  const saveBtn   = $('btnApikeySave');
-  const toggleBtn = $('btnApikeyToggle');
-  const statusEl  = $('apikeyStatus');
-  if (!input) return;
-
-  function updateStatus() {
-    const key = localStorage.getItem('meshy_api_key') || '';
-    if (key) {
-      input.value          = key;
-      statusEl.textContent = '已设置';
-      statusEl.className   = 'apikey-status apikey-ok';
-    } else {
-      statusEl.textContent = '未设置';
-      statusEl.className   = 'apikey-status apikey-missing';
-    }
-  }
-
-  updateStatus();
-
-  saveBtn.addEventListener('click', () => {
-    const val = input.value.trim();
-    if (!val) {
-      localStorage.removeItem('meshy_api_key');
-      updateStatus();
-      showToast('已清除 API Key', 'info');
-    } else if (!val.startsWith('msy_')) {
-      showToast('Key 格式不正确，应以 msy_ 开头', 'error');
-    } else {
-      localStorage.setItem('meshy_api_key', val);
-      updateStatus();
-      showToast('API Key 已保存', 'success');
-    }
-  });
-
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveBtn.click(); });
-
-  toggleBtn.addEventListener('click', () => {
-    const isHidden = input.type === 'password';
-    input.type     = isHidden ? 'text' : 'password';
-    toggleBtn.title = isHidden ? '隐藏' : '显示/隐藏';
-  });
-}
-
-/* ================================================================
    生成按钮主流程
    ================================================================ */
 function initGenerateButton() {
@@ -107,8 +59,7 @@ function initGenerateButton() {
   btnGenerate.addEventListener('click', async () => {
     if (!state.imageBase64) { showToast('请先上传图片', 'error'); return; }
     if (!localStorage.getItem('meshy_api_key')) {
-      showToast('⚠️ 请先设置 Meshy API Key', 'error', 8000);
-      $('apikeyInput')?.focus();
+      showToast('⚠️ API Key 未加载，请刷新页面重试', 'error', 8000);
       return;
     }
 
@@ -169,7 +120,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   registerTaskCallbacks({ onSucceeded: onTaskSucceeded, onFailed: onTaskFailed });
 
   // 初始化各模块 UI
-  initApiKeyUI();
   initUploadUI();
   initLocalFileUI();
   initGenerateButton();

@@ -336,25 +336,6 @@ export function initLocalFileUI() {
     });
   }
 
-  // 调试：直接输入 URL 预览
-  const btnDebugPreview = $('btnDebugPreview');
-  const debugUrlInput   = $('debugUrlInput');
-  if (btnDebugPreview) {
-    btnDebugPreview.addEventListener('click', () => {
-      const raw = debugUrlInput?.value.trim();
-      if (!raw) { showToast('请输入模型 URL', 'error'); return; }
-      log('info', '[Debug]', '手动预览 URL:', raw);
-      const placeholderCard = $('placeholderCard');
-      const viewerCard      = $('viewerCard');
-      if (placeholderCard) placeholderCard.style.display = 'none';
-      if (viewerCard)      viewerCard.style.display      = 'block';
-      loadModelInViewer(raw);
-    });
-    debugUrlInput?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') btnDebugPreview.click();
-    });
-  }
-
   // 重置视角按钮
   $('btnResetView')?.addEventListener('click', resetCamera);
 }
