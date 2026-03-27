@@ -259,6 +259,39 @@
 
   </div>
 
+  <!-- 右下角 3D Demo 悬浮小窗 -->
+  <div class="demo-widget" id="demoWidget">
+    <!-- 折叠态：触发按钮 -->
+    <button class="demo-widget-toggle" id="demoWidgetToggle" title="查看 3D 示例">
+      <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+        <path d="M12 2L2 7l10 5 10-5-10-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+      <span>示例模型</span>
+    </button>
+    <!-- 展开态：小预览窗 -->
+    <div class="demo-widget-panel" id="demoWidgetPanel">
+      <div class="demo-widget-header">
+        <span class="demo-widget-title">
+          <span class="demo-widget-dot"></span>
+          3D 示例预览
+        </span>
+        <button class="demo-widget-close" id="demoWidgetClose" title="关闭">✕</button>
+      </div>
+      <div class="demo-widget-canvas-wrap">
+        <canvas id="demoCanvas"></canvas>
+        <div class="demo-widget-loading" id="demoWidgetLoading">
+          <div class="demo-spinner"></div>
+          <span id="demoLoadPct">加载中...</span>
+        </div>
+      </div>
+      <div class="demo-widget-footer">
+        拖拽旋转 · 滚轮缩放
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -21,6 +21,7 @@ import { registerTaskCallbacks, createTask,
 import { initUploadUI, renderDownloadButtons }              from './js/upload.js';
 import { initThree, loadModelInViewer,
          initLocalFileUI }                                  from './js/viewer.js';
+import { initDemoWidget }                                   from './js/demoWidget.js';
 
 /* ================================================================
    任务成功 / 失败 回调（注入到 api.js，避免循环依赖）
@@ -123,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initUploadUI();
   initLocalFileUI();
   initGenerateButton();
+  initDemoWidget();
 
   // 初始显示状态
   $('progressCard').style.display   = 'none';
