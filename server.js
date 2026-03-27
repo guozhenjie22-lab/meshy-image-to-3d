@@ -132,10 +132,14 @@ const server = http.createServer((req, res) => {
 function serveFile(filePath, res) {
   const ext  = path.extname(filePath).toLowerCase();
   const mime = MIME[ext] || 'application/octet-stream';
-  const stream = fs.createReadStream(filePath);
-  res.writeHead(200, { 'Content-Type': mime });
-  stream.pipe(res);
-  stream.on('error', (err) => { res.end(); });
+  fs.stat(filePath, (err, stat) => {
+    const headers = { 'Content-Type': mime };
+    if (!err && stat) headers['Content-Length'] = stat.size;
+    res.writeHead(200, headers);
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
+    stream.on('error', () => { res.end(); });
+  });
 }
 
 server.listen(PORT, () => {
