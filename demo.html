@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D 模型展示 · Meshy AI Demo</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0b14;
+      --surface: #11131f;
+      --border: rgba(255,255,255,0.08);
+      --accent: #7c6df0;
+      --accent2: #a78bfa;
+      --text: #e2e4f0;
+      --text-muted: #8b8fa8;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    /* 背景光晕 */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb1 { width: 400px; height: 400px; background: rgba(124,109,240,0.15); top: -100px; right: -100px; }
+    .orb2 { width: 300px; height: 300px; background: rgba(167,139,250,0.1); bottom: -80px; left: -60px; }
+
+    .demo-wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 标题栏 */
+    .demo-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .demo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(124,109,240,0.15);
+      border: 1px solid rgba(124,109,240,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.72rem;
+      color: var(--accent2);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .demo-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .demo-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* 3D 卡片 */
+    .viewer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .viewer-canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: radial-gradient(ellipse at 50% 60%, #161828 0%, #0a0b14 100%);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    /* loading 遮罩 */
+    .viewer-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(10,11,20,0.9);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      isolation: isolate;
+      transition: opacity 0.4s;
+    }
+    .viewer-loading.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      will-change: transform;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .load-pct { font-variant-numeric: tabular-nums; }
+
+    /* 控制栏 */
+    .viewer-footer {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .model-info {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+    .info-dot.loading { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+
+    .ctrl-btns { display: flex; gap: 8px; }
+    .btn-ctrl {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-ctrl:hover { background: rgba(255,255,255,0.09); color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .btn-ctrl svg { flex-shrink: 0; }
+
+    /* 提示 */
+    .demo-hint {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    /* 右上角 watermark */
+    .watermark {
+      position: absolute;
+      top: 12px; right: 14px;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.18);
+      letter-spacing: 0.06em;
+      pointer-events: none;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+
+<div class="demo-wrap">
+
+  <div class="demo-header">
+    <div class="demo-badge">Live Demo</div>
+    <span class="demo-title">3D 模型预览示例</span>
+  </div>
+
+  <div class="viewer-card">
+    <div class="viewer-canvas-wrap">
+      <canvas id="demoCanvas"></canvas>
+      <div class="viewer-loading" id="loadingOverlay">
+        <div class="spinner"></div>
+        <span class="load-pct" id="loadPct">加载模型中...</span>
+      </div>
+      <div class="watermark">Meshy AI</div>
+    </div>
+
+    <div class="viewer-footer">
+      <div class="model-info">
+        <span class="info-dot loading" id="infoDot"></span>
+        <span id="infoText">正在加载...</span>
+      </div>
+      <div class="ctrl-btns">
+        <button class="btn-ctrl" id="btnAutoRotate" title="自动旋转">
+          <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
+            <path d="M2 8a6 6 0 1 0 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          自动旋转
+        </button>
+        <button class="btn-ctrl" id="btnReset" title="重置视角">
+          <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
+            <path d="M8 2a6 6 0 1 0 4.24 1.76" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M12 1v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          重置
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="demo-hint">拖拽旋转 · 滚轮缩放 · 右键平移</p>
+
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const MODEL_URL = '/public/models/demo.glb';
+
+const canvas  = document.getElementById('demoCanvas');
+const overlay = document.getElementById('loadingOverlay');
+const loadPct = document.getElementById('loadPct');
+const infoDot = document.getElementById('infoDot');
+const infoText = document.getElementById('infoText');
+
+// ── Renderer ──────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace  = THREE.SRGBColorSpace;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+// ── Scene & Camera ────────────────────────────────────────
+const scene  = new THREE.Scene();
+const wrap   = canvas.parentElement;
+const aspect = wrap.clientWidth / wrap.clientHeight;
+const camera = new THREE.PerspectiveCamera(45, aspect, 0.01, 1000);
+camera.position.set(0, 1.2, 3);
+
+// ── Lights ────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambient);
+
+const key = new THREE.DirectionalLight(0xffffff, 1.8);
+key.position.set(3, 5, 4);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0xa78bfa, 0.4);
+fill.position.set(-4, 2, -3);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0x7c6df0, 0.3);
+rim.position.set(0, -3, -5);
+scene.add(rim);
+
+// 地面阴影接收平面（透明）
+const shadowPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(20, 20),
+  new THREE.ShadowMaterial({ opacity: 0.2 })
+);
+shadowPlane.rotation.x = -Math.PI / 2;
+shadowPlane.position.y = -0.001;
+shadowPlane.receiveShadow = true;
+scene.add(shadowPlane);
+
+// ── OrbitControls ─────────────────────────────────────────
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping    = true;
+controls.dampingFactor    = 0.06;
+controls.minDistance      = 0.5;
+controls.maxDistance      = 20;
+controls.maxPolarAngle    = Math.PI * 0.85;
+
+// ── Resize ────────────────────────────────────────────────
+function onResize() {
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(onResize).observe(wrap);
+onResize();
+
+// ── Load GLB ─────────────────────────────────────────────
+let modelRoot = null;
+let initCamPos, initTarget;
+let autoRotate = false;
+
+new GLTFLoader().load(
+  MODEL_URL,
+  gltf => {
+    modelRoot = gltf.scene;
+
+    // 自动居中 & 缩放
+    const box    = new THREE.Box3().setFromObject(modelRoot);
+    const size   = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale  = 2.0 / maxDim;
+    modelRoot.scale.setScalar(scale);
+    modelRoot.position.sub(center.multiplyScalar(scale));
+
+    // 让阴影平面贴底部
+    const box2 = new THREE.Box3().setFromObject(modelRoot);
+    shadowPlane.position.y = box2.min.y - 0.001;
+
+    modelRoot.traverse(c => {
+      if (c.isMesh) {
+        c.castShadow    = true;
+        c.receiveShadow = true;
+      }
+    });
+
+    scene.add(modelRoot);
+
+    // 初始相机位置
+    const dist = maxDim * scale * 1.8;
+    camera.position.set(0, size.y * scale * 0.4, dist);
+    controls.target.set(0, 0, 0);
+    controls.update();
+
+    initCamPos  = camera.position.clone();
+    initTarget  = controls.target.clone();
+
+    // 隐藏 loading
+    overlay.classList.add('hidden');
+    infoDot.classList.remove('loading');
+    const mb = (61.3).toFixed(1); // 文件约 61MB
+    infoText.textContent = `demo.glb · ${mb} MB · 已就绪`;
+  },
+  xhr => {
+    const pct = xhr.total ? Math.round(xhr.loaded / xhr.total * 100) : 0;
+    loadPct.textContent = `下载模型 ${pct}%...`;
+  },
+  err => {
+    loadPct.textContent = '加载失败：' + (err.message || '未知错误');
+    infoDot.style.background = '#ef4444';
+    infoDot.classList.remove('loading');
+    infoText.textContent = '加载失败';
+    console.error('[Demo]', err);
+  }
+);
+
+// ── 自动旋转按钮 ──────────────────────────────────────────
+const btnAuto = document.getElementById('btnAutoRotate');
+btnAuto.addEventListener('click', () => {
+  autoRotate = !autoRotate;
+  controls.autoRotate      = autoRotate;
+  controls.autoRotateSpeed = 1.5;
+  btnAuto.style.color        = autoRotate ? 'var(--accent2)' : '';
+  btnAuto.style.borderColor  = autoRotate ? 'rgba(124,109,240,0.4)' : '';
+  btnAuto.style.background   = autoRotate ? 'rgba(124,109,240,0.1)' : '';
+});
+
+// ── 重置视角按钮 ──────────────────────────────────────────
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (!initCamPos) return;
+  camera.position.copy(initCamPos);
+  controls.target.copy(initTarget);
+  controls.update();
+});
+
+// ── Render Loop ───────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+
+</body>
+</html>
