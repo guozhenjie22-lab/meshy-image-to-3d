@@ -48,6 +48,28 @@
       <!-- Left Panel: Upload + Config -->
       <section class="panel panel-left">
 
+        <!-- API Key -->
+        <div class="card apikey-card" id="apikeyCard">
+          <h2 class="card-title">
+            <span class="icon">🔑</span> Meshy API Key
+            <span class="apikey-status" id="apikeyStatus"></span>
+          </h2>
+          <div class="apikey-row">
+            <input type="password" id="apikeyInput" placeholder="msy_xxxxxxxxxxxxxxxx" autocomplete="off" />
+            <button class="btn-apikey-toggle" id="btnApikeyToggle" title="显示/隐藏">
+              <svg id="eyeIcon" viewBox="0 0 20 20" fill="none" width="16" height="16">
+                <path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+            <button class="btn-apikey-save" id="btnApikeySave">保存</button>
+          </div>
+          <p class="apikey-hint">
+            Key 仅保存在本地浏览器，不会上传。
+            <a href="https://app.meshy.ai/account/api-keys" target="_blank">获取 API Key →</a>
+          </p>
+        </div>
+
         <!-- Upload Area -->
         <div class="card upload-card">
           <h2 class="card-title">
@@ -165,6 +187,16 @@
               </svg>
               重置视角
             </button>
+            <button class="btn-control" id="btnReloadLocal" title="重新加载本地文件">
+              <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                <path d="M4 16v4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 20a9 9 0 0 0 15.54-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M20 8V4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 4a9 9 0 0 0-15.54 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              重新上传
+            </button>
+            <input type="file" id="reloadLocalInput" accept=".glb,.gltf,.obj,.fbx" hidden />
           </div>
         </div>
 
@@ -212,6 +244,14 @@
             </div>
           </div>
 
+          <!-- 调试：直接输入 URL 预览 -->
+          <div class="debug-preview">
+            <p class="debug-label">🔧 调试：粘贴 GLB URL 直接预览</p>
+            <div class="debug-row">
+              <input type="text" id="debugUrlInput" placeholder="https://assets.meshy.ai/.../model.glb?..." />
+              <button id="btnDebugPreview">预览</button>
+            </div>
+          </div>
         </div>
 
       </section>

@@ -338,4 +338,13 @@ export function initLocalFileUI() {
 
   // 重置视角按钮
   $('btnResetView')?.addEventListener('click', resetCamera);
+
+  // 重新上传按钮（viewerCard 内）
+  const reloadInput = $('reloadLocalInput');
+  $('btnReloadLocal')?.addEventListener('click', () => reloadInput?.click());
+  reloadInput?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) loadLocalModelFile(file);
+    reloadInput.value = '';
+  });
 }
