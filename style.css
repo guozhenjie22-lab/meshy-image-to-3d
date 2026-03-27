@@ -370,7 +370,8 @@ html, body {
   background: rgba(13,14,26,0.85);
   font-size: 0.875rem;
   color: var(--text-muted);
-  backdrop-filter: blur(6px);
+  /* 移除 backdrop-filter，避免触发合成层导致子元素 animation 失效 */
+  isolation: isolate;
 }
 .viewer-loading.hidden { display: none; }
 .spinner {
@@ -379,8 +380,12 @@ html, body {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  will-change: transform;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
 .viewer-controls {
   display: flex;
@@ -551,6 +556,7 @@ html, body {
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
+}
 
 /* ── 加载本地 3D 文件 ─────────────────────────────────── */
 .local-load {
