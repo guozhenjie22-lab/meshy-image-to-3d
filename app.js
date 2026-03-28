@@ -57,13 +57,23 @@ function initGenerateButton() {
   const btnGenerate = $('btnGenerate');
   if (!btnGenerate) return;
 
+  // 模块级提交锁：防止重复点击 / 双击 / 快速多次触发
+  let isSubmitting = false;
+
   btnGenerate.addEventListener('click', async () => {
+    // ── 防重提交：锁未释放直接拦截 ──────────────────────────────
+    if (isSubmitting) {
+      showToast('任务正在提交中，请稍候...', 'error');
+      return;
+    }
     if (!state.imageBase64) { showToast('请先上传图片', 'error'); return; }
     if (!localStorage.getItem('meshy_api_key')) {
       showToast('⚠️ API Key 未加载，请刷新页面重试', 'error', 8000);
       return;
     }
 
+    // 立即上锁 + 禁用按钮（双重保险）
+    isSubmitting = true;
     setGeneratingState(true);
     resetProgress();
     $('placeholderCard').style.display = 'block';
@@ -89,8 +99,25 @@ function initGenerateButton() {
     } catch (err) {
       showToast('任务创建失败：' + err.message, 'error');
       addLog('错误：' + err.message);
+      // 提交失败时释放锁，允许用户重试
+      isSubmitting = false;
       resetGenerateButton();
     }
+  });
+
+  // 任务成功/失败后释放锁（带锁释放的回调重新注入）
+  const origOnSucceeded = onTaskSucceeded;
+  const origOnFailed    = onTaskFailed;
+  // 重新注册带锁释放的回调
+  registerTaskCallbacks({
+    onSucceeded: (modelUrls, thumbnailUrl) => {
+      isSubmitting = false;
+      origOnSucceeded(modelUrls, thumbnailUrl);
+    },
+    onFailed: (status) => {
+      isSubmitting = false;
+      origOnFailed(status);
+    },
   });
 }
 
@@ -117,10 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     log('warn', '[App]', '未能从服务端获取 API Key，需手动输入:', e.message);
   }
 
-  // 注入 API 回调（避免循环引用）
-  registerTaskCallbacks({ onSucceeded: onTaskSucceeded, onFailed: onTaskFailed });
-
-  // 初始化各模块 UI
+  // 初始化各模块 UI（initGenerateButton 内部完成 registerTaskCallbacks）
   initUploadUI();
   initLocalFileUI();
   initGenerateButton();
